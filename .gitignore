@@ -1,0 +1,21 @@
+node_modules
+dist
+.env
+.env.local
+.env.production
+*.log
+.expo
+.DS_Store
+.run
+deploy.tgz
+backups/
+exports/
+scripts/_*.sql
+
+# その他
+data/
+todo.txt
+
+# 移行資材（個人データ・パスワードハッシュを含むため絶対にコミットしない）
+*-migration-*.json
+homegear-migration-*.json

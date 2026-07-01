@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: homeasset-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: homeasset
+      POSTGRES_PASSWORD: homeasset_dev_password
+      POSTGRES_DB: homeasset
+      TZ: Asia/Tokyo
+    ports:
+      - "5433:5432"
+    volumes:
+      - homeasset_pgdata:/var/lib/postgresql/data
+
+volumes:
+  homeasset_pgdata:

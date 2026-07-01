@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "HomeAsset",
+    "slug": "homeasset",
+    "version": "0.1.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1565C0"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.homeasset",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.example.homeasset"
+    },
+    "extra": {
+      "apiBaseUrl": "http://219.94.251.235:4001",
+      "eas": {
+        "projectId": "78f81d4e-f111-46ff-9e8d-08adbc9a2fb9"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "owner": "soushin.yamaoka",
+    "updates": {
+      "url": "https://u.expo.dev/78f81d4e-f111-46ff-9e8d-08adbc9a2fb9"
+    }
+  }
+}

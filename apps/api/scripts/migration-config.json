@@ -1,0 +1,49 @@
+{
+  "migrationName": "homegear_to_homeasset_v1",
+  "categoryAssetTypeMap": {
+    "家電": "device",
+    "IT機器": "device",
+    "ネットワーク機器": "device",
+    "スマートホーム": "device",
+    "防犯カメラ": "device",
+    "生活設備": "housing_equipment",
+    "住宅設備": "housing_equipment",
+    "キッチン": "housing_equipment",
+    "浴室": "housing_equipment",
+    "トイレ": "housing_equipment",
+    "洗面台": "housing_equipment",
+    "給湯器": "housing_equipment",
+    "建物部位": "building_part",
+    "外壁": "building_part",
+    "屋根": "building_part",
+    "窓": "building_part",
+    "玄関ドア": "building_part",
+    "ベランダ": "building_part",
+    "家具": "furniture",
+    "デスク": "furniture",
+    "工具": "tool",
+    "その他": "other"
+  },
+  "statusMap": {
+    "active": "active",
+    "in_use": "active",
+    "spare": "spare",
+    "broken": "broken",
+    "repairing": "repairing",
+    "disposed": "disposed",
+    "sold": "sold",
+    "maintenance_planned": "maintenance_planned",
+    "replacement_planned": "replacement_planned",
+    "replaced": "replaced"
+  },
+  "linkTypeMap": {
+    "manual": "manual",
+    "warranty": "warranty",
+    "receipt": "receipt",
+    "invoice": "invoice",
+    "support": "support",
+    "purchase": "purchase",
+    "official": "official",
+    "other": "other"
+  }
+}

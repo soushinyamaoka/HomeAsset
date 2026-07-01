@@ -1,0 +1,421 @@
+// HomeAsset DB スキーマ
+// PostgreSQL + Prisma
+// 家庭単位 (household_id) でデータを分離する
+// home_assets は機器/住宅設備/建物部位などを統一管理する
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members            HouseholdMember[]
+  homeAssets         HomeAsset[]
+  categories         Category[]
+  locations          Location[]
+  assetSpecs         AssetSpec[]
+  assetLinks         AssetLink[]
+  maintenanceRecords MaintenanceRecord[]
+  repairRecords      RepairRecord[]
+  consumables        Consumable[]
+  networkInfos       NetworkInfo[]
+  accessories        Accessory[]
+  aiImportLogs       AiImportLog[]
+  actionPlans        ActionPlan[]
+
+  @@map("households")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships HouseholdMember[]
+
+  @@map("users")
+}
+
+model HouseholdMember {
+  id          String   @id @default(cuid())
+  householdId String   @map("household_id")
+  userId      String   @map("user_id")
+  role        String   @default("member") // owner | member
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, userId])
+  @@index([userId])
+  @@map("household_members")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  householdId String   @map("household_id")
+  name        String
+  assetType   String?  @map("asset_type") // device | housing_equipment | building_part | furniture | tool | other
+  icon        String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  household  Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  homeAssets HomeAsset[]
+
+  @@unique([householdId, name])
+  @@index([householdId])
+  @@map("categories")
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  householdId String   @map("household_id")
+  name        String
+  parentId    String?  @map("parent_id")
+  memo        String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  household  Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  parent     Location?   @relation("LocationParent", fields: [parentId], references: [id])
+  children   Location[]  @relation("LocationParent")
+  homeAssets HomeAsset[]
+
+  @@unique([householdId, name])
+  @@index([householdId])
+  @@map("locations")
+}
+
+model HomeAsset {
+  id                      String    @id @default(cuid())
+  householdId             String    @map("household_id")
+  assetType               String    @default("device") @map("asset_type")
+  name                    String
+  categoryId              String?   @map("category_id")
+  manufacturer            String?
+  modelNumber             String?   @map("model_number")
+  serialNumber            String?   @map("serial_number")
+  locationId              String?   @map("location_id")
+  status                  String    @default("active")
+  priority                String    @default("medium")
+
+  // 購入・設置・施工情報
+  purchaseDate            DateTime? @map("purchase_date") @db.Date
+  installedDate           DateTime? @map("installed_date") @db.Date
+  constructionDate        DateTime? @map("construction_date") @db.Date
+  purchaseStore           String?   @map("purchase_store")
+  contractorName          String?   @map("contractor_name")
+  contractorContact       String?   @map("contractor_contact")
+  contactPerson           String?   @map("contact_person")
+  purchasePrice           Decimal?  @map("purchase_price") @db.Decimal(12, 2)
+  constructionCost        Decimal?  @map("construction_cost") @db.Decimal(12, 2)
+  purchaseUrl             String?   @map("purchase_url")
+  orderNumber             String?   @map("order_number")
+  contractNumber          String?   @map("contract_number")
+  receiptUrl              String?   @map("receipt_url")
+  constructionDocumentUrl String?   @map("construction_document_url")
+
+  // 保証情報
+  warrantyStartDate       DateTime? @map("warranty_start_date") @db.Date
+  warrantyEndDate         DateTime? @map("warranty_end_date") @db.Date
+  hasExtendedWarranty     Boolean   @default(false) @map("has_extended_warranty")
+  warrantyMemo            String?   @map("warranty_memo")
+
+  // 取扱説明書・サポート
+  manualUrl               String?   @map("manual_url")
+  officialUrl             String?   @map("official_url")
+  supportUrl              String?   @map("support_url")
+
+  // 写真
+  photoUrl                String?   @map("photo_url")
+  labelPhotoUrl           String?   @map("label_photo_url")
+  beforePhotoUrl          String?   @map("before_photo_url")
+  afterPhotoUrl           String?   @map("after_photo_url")
+
+  // 寿命・交換予定
+  expectedLifespanYears   Int?      @map("expected_lifespan_years")
+  replacementDueDate      DateTime? @map("replacement_due_date") @db.Date
+
+  memo                    String?
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  deletedAt               DateTime? @map("deleted_at")
+
+  household          Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  category           Category?           @relation(fields: [categoryId], references: [id])
+  location           Location?           @relation(fields: [locationId], references: [id])
+  specs              AssetSpec[]
+  links              AssetLink[]
+  maintenanceRecords MaintenanceRecord[]
+  repairRecords      RepairRecord[]
+  consumables        Consumable[]
+  networkInfo        NetworkInfo?
+  accessories        Accessory[]
+  aiImportLogs       AiImportLog[]
+  actionPlan         ActionPlan?
+
+  @@index([householdId])
+  @@index([householdId, status])
+  @@index([householdId, assetType])
+  @@index([householdId, deletedAt])
+  @@map("home_assets")
+}
+
+model AssetSpec {
+  id          String   @id @default(cuid())
+  householdId String   @map("household_id")
+  assetId     String   @map("asset_id")
+  specName    String   @map("spec_name")
+  specValue   String?  @map("spec_value")
+  unit        String?
+  memo        String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_specs")
+}
+
+model AssetLink {
+  id          String   @id @default(cuid())
+  householdId String   @map("household_id")
+  assetId     String   @map("asset_id")
+  linkType    String   @map("link_type")
+  title       String?
+  url         String
+  memo        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_links")
+}
+
+model MaintenanceRecord {
+  id              String    @id @default(cuid())
+  householdId     String    @map("household_id")
+  assetId         String    @map("asset_id")
+  maintenanceDate DateTime  @map("maintenance_date") @db.Date
+  maintenanceType String    @map("maintenance_type")
+  description     String?
+  cost            Decimal?  @db.Decimal(12, 2)
+  performedBy     String?   @map("performed_by")
+  vendorName      String?   @map("vendor_name")
+  nextDueDate     DateTime? @map("next_due_date") @db.Date
+  photoUrl        String?   @map("photo_url")
+  documentUrl     String?   @map("document_url")
+  memo            String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([householdId, nextDueDate])
+  @@map("maintenance_records")
+}
+
+model RepairRecord {
+  id             String    @id @default(cuid())
+  householdId    String    @map("household_id")
+  assetId        String    @map("asset_id")
+  occurredDate   DateTime  @map("occurred_date") @db.Date
+  symptom        String?
+  cause          String?
+  actionTaken    String?   @map("action_taken")
+  vendorName     String?   @map("vendor_name")
+  ticketNumber   String?   @map("ticket_number")
+  estimatedCost  Decimal?  @map("estimated_cost") @db.Decimal(12, 2)
+  cost           Decimal?  @db.Decimal(12, 2)
+  usedWarranty   Boolean   @default(false) @map("used_warranty")
+  completedDate  DateTime? @map("completed_date") @db.Date
+  status         String    @default("pending")
+  photoUrl       String?   @map("photo_url")
+  estimateUrl    String?   @map("estimate_url")
+  invoiceUrl     String?   @map("invoice_url")
+  memo           String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("repair_records")
+}
+
+model Consumable {
+  id                      String    @id @default(cuid())
+  householdId             String    @map("household_id")
+  assetId                 String    @map("asset_id")
+  name                    String
+  manufacturer            String?
+  modelNumber             String?   @map("model_number")
+  replacementIntervalText String?   @map("replacement_interval_text")
+  lastReplacedDate        DateTime? @map("last_replaced_date") @db.Date
+  nextReplacementDate     DateTime? @map("next_replacement_date") @db.Date
+  purchaseUrl             String?   @map("purchase_url")
+  memo                    String?
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("consumables")
+}
+
+model NetworkInfo {
+  id                    String   @id @default(cuid())
+  householdId           String   @map("household_id")
+  assetId               String   @unique @map("asset_id")
+  ipAddress             String?  @map("ip_address")
+  hostName              String?  @map("host_name")
+  macAddress            String?  @map("mac_address")
+  adminUrl              String?  @map("admin_url")
+  port                  Int?
+  connectionType        String?  @map("connection_type")
+  credentialStorageMemo String?  @map("credential_storage_memo")
+  settingsMemo          String?  @map("settings_memo")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("network_infos")
+}
+
+// 資産ごとのメンテ・更新アクション計画（AI生成 / 1資産1件）
+model ActionPlan {
+  id                        String    @id @default(cuid())
+  householdId               String    @map("household_id")
+  assetId                   String    @unique @map("asset_id")
+
+  managementPolicy          String?   @map("management_policy")             // 方針
+  actionPhase               String?   @map("action_phase")                  // 段階
+  nextAction                String?   @map("next_action")                   // 次にやること
+  professionalTrigger       String?   @map("professional_trigger")          // 業者相談トリガー
+  estimateTiming            String?   @map("estimate_timing")               // 見積タイミング
+  replacementDecisionTiming String?   @map("replacement_decision_timing")   // 更新判断の条件
+
+  replacementYearFrom       Int?      @map("replacement_year_from")         // 更新予定 年(From)
+  replacementYearTo         Int?      @map("replacement_year_to")           // 更新予定 年(To)
+  replacementStatus         String?   @map("replacement_status")            // 例: 当面はセルフ管理
+
+  replacementCostMin        Int?      @map("replacement_cost_min")          // 概算更新費(円)
+  replacementCostMax        Int?      @map("replacement_cost_max")
+  routineCostMin            Int?      @map("routine_cost_min")              // 通常メンテ費(円)
+  routineCostMax            Int?      @map("routine_cost_max")
+  professionalCostMin       Int?      @map("professional_cost_min")         // 業者費(円)
+  professionalCostMax       Int?      @map("professional_cost_max")
+
+  baselineYear              Int?      @map("baseline_year")                 // 基準年(購入年等)
+  priority                  String?                                         // high | medium | low
+  notes                     String[]                                        // 補足
+
+  source                    String?   @default("ai_action_plan") @map("source") // 生成元
+  schemaVersion             String?   @map("schema_version")
+  generatedAt               DateTime? @map("generated_at")
+
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@index([householdId, replacementYearFrom])
+  @@map("action_plans")
+}
+
+model Accessory {
+  id              String   @id @default(cuid())
+  householdId     String   @map("household_id")
+  assetId         String   @map("asset_id")
+  name            String
+  quantity        Int?
+  storageLocation String?  @map("storage_location")
+  memo            String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("accessories")
+}
+
+model AiImportLog {
+  id           String   @id @default(cuid())
+  householdId  String   @map("household_id")
+  assetId      String?  @map("asset_id")
+  sourceAiName String?  @map("source_ai_name")
+  inputPrompt  String?  @map("input_prompt")
+  rawResponse  String?  @map("raw_response")
+  parsedJson   Json?    @map("parsed_json")
+  importedAt   DateTime @default(now()) @map("imported_at")
+  memo         String?
+
+  household Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     HomeAsset? @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([householdId])
+  @@map("ai_import_logs")
+}
+
+// 旧アプリ(HomeGear)からの移行管理用。旧ID→新IDの対応表
+model MigrationMapping {
+  id            String   @id @default(cuid())
+  migrationName String   @map("migration_name")
+  sourceTable   String   @map("source_table")
+  sourceId      String   @map("source_id")
+  targetTable   String   @map("target_table")
+  targetId      String   @map("target_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([migrationName, sourceTable, sourceId, targetTable], name: "uniq_mapping")
+  @@index([migrationName, sourceTable])
+  @@map("migration_mappings")
+}
+
+// 移行実行ログ
+model MigrationLog {
+  id            String    @id @default(cuid())
+  migrationName String    @map("migration_name")
+  mode          String // dry-run | execute | verify
+  status        String // success | failed | partial
+  startedAt     DateTime  @default(now()) @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  summaryJson   Json?     @map("summary_json")
+  errorMessage  String?   @map("error_message")
+
+  @@index([migrationName])
+  @@map("migration_logs")
+}

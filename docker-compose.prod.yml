@@ -1,0 +1,43 @@
+# HomeAsset 本番用 Docker Compose（API + PostgreSQL 16）
+# 使い方:
+#   1) cp .env.production.example .env   して値を設定
+#   2) docker compose -f docker-compose.prod.yml up -d --build
+#   3) ログ確認: docker compose -f docker-compose.prod.yml logs -f api
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: homeasset-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Asia/Tokyo
+    volumes:
+      - homeasset_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    # DB はコンテナ内ネットワークのみ（ホスト/外部には公開しない）
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: homeasset-api-prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "4001:4001"
+
+volumes:
+  homeasset_pgdata:

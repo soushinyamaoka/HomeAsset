@@ -37,7 +37,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       JWT_SECRET: ${JWT_SECRET}
     ports:
-      - "4001:4001"
+      # Nginxリバースプロキシ経由でのみ公開するため、ホストのloopbackのみにバインドする
+      - "127.0.0.1:4001:4001"
 
 volumes:
   homeasset_pgdata:

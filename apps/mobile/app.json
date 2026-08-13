@@ -29,7 +29,7 @@
       "package": "com.example.homeasset"
     },
     "extra": {
-      "apiBaseUrl": "http://219.94.251.235:4001",
+      "apiBaseUrl": "https://homeasset.homehub-tools.dedyn.io",
       "eas": {
         "projectId": "78f81d4e-f111-46ff-9e8d-08adbc9a2fb9"
       }

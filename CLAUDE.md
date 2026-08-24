@@ -182,8 +182,9 @@ npm run mobile:start    Expo起動
 
 ## 自動開発（外部AI指示書のヘッドレス実行）の判断ルール
 
-外部AI（ChatGPT）が配布した指示書を `scripts/watch-instructions.ps1` が検知し、`claude -p` をヘッドレス起動して
-自動で開発・コミット・デプロイまで行う運用がある。**この運用ではユーザーに質問できない**ため、
+外部AI（ChatGPT）が配布した指示書を常駐ツール **ai-watch** が検知し、`claude -p` をヘッドレス起動して
+自動で開発・コミット・デプロイまで行う運用がある（ツール本体は複数プロジェクト共用のため**このリポジトリ外**にあり、
+ここでは管理しない）。**この運用ではユーザーに質問できない**ため、
 以下の判断基準に従うこと（ヘッドレス実行かどうかに関わらず、迷ったときの基準として適用してよい）。
 
 ### 作業受け渡し規約（ChatGPT ⇔ Claude）
@@ -273,6 +274,5 @@ user_maintenance_impact: none | possible | required
 
 - `work/ai_handoff/inbox/task.md` … ChatGPT からの作業指示（読むだけ。編集しない）
 - `work/ai_handoff/outbox/result.md` … 作業結果レポート（毎回上書き）
-- `scripts/watch-instructions.ps1` … 監視スクリプト（FileSystemWatcher / ロックファイル / `watch.log`）
-- `scripts/watch-instructions.prompt.md` … `claude -p` へ渡すプロンプトテンプレート
-- `.run/ai-watch/` … ログ・ロック・処理済みハッシュ・実行ログの置き場所（gitignore 済み）
+- ai-watch（監視ツール本体・プロンプトテンプレート・ログ・実行履歴）… **リポジトリ外の共有フォルダ**。
+  複数プロジェクトを1プロセスで監視するため、このリポジトリには置かない。所在はローカルの `ai-watch/README.md` を参照。

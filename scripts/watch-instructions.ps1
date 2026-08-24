@@ -287,11 +287,17 @@ function Invoke-ClaudeRun {
 
   $proc = Start-Process -FilePath $ClaudeExe -ArgumentList $claudeArgs -WorkingDirectory $ProjectRoot -NoNewWindow -PassThru -RedirectStandardInput $promptFile -RedirectStandardOutput $outFile -RedirectStandardError $errFile
 
+  # 起動直後に Handle を参照してキャッシュしておかないと、終了後に ExitCode を取得できない
+  try { $null = $proc.Handle } catch { }
+
   $timedOut = $false
   if (-not $proc.WaitForExit($TimeoutMinutes * 60 * 1000)) {
     $timedOut = $true
     try { & taskkill /PID $proc.Id /T /F | Out-Null } catch { }
     try { $proc.WaitForExit(10000) | Out-Null } catch { }
+  } else {
+    # WaitForExit(ミリ秒) の直後は終了コードが未確定なことがあるため、確定を待ってから読む
+    try { $proc.WaitForExit() } catch { }
   }
 
   $stdout = ''
@@ -314,14 +320,19 @@ function Invoke-ClaudeRun {
 
   Remove-Item -LiteralPath $promptFile, $outFile, $errFile -Force -ErrorAction SilentlyContinue
 
-  $exitCode = -1
-  try { $exitCode = $proc.ExitCode } catch { }
-
   # プロンプトで最終行に出力させている RESULT: 行を拾う（規約の status と同じ語彙）
   $verdict = 'UNKNOWN'
   if ($stdout) {
     $found = [regex]::Matches($stdout, '(?m)^\s*RESULT:\s*(SUCCESS|PARTIAL|BLOCKED|FAILED)\s*$')
     if ($found.Count -gt 0) { $verdict = $found[$found.Count - 1].Groups[1].Value }
+  }
+
+  $exitCode = $null
+  try { $proc.Refresh() } catch { }
+  try { $exitCode = $proc.ExitCode } catch { }
+  if ($null -eq $exitCode) {
+    # 終了コードを取得できないことがある。RESULT 行が取れていれば正常終了とみなす。
+    if ($verdict -ne 'UNKNOWN') { $exitCode = 0 } else { $exitCode = -1 }
   }
 
   return [pscustomobject]@{

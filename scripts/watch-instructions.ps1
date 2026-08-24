@@ -240,6 +240,9 @@ function Get-TaskId {
 function New-PromptText {
   param([string]$InstructionPath, [string]$ResultPath, [string]$TaskId)
   $template = Get-Content -LiteralPath $PromptTemplateFile -Raw -Encoding UTF8
+  # テンプレート自身への注釈（HTMLコメント）は Claude へ渡さない
+  # ※指示書本文のコメントは情報を落とさないよう残すため、差し込み前に除去する
+  $template = [regex]::Replace($template, '(?s)<!--.*?-->\s*', '')
   $body     = Get-Content -LiteralPath $InstructionPath -Raw -Encoding UTF8
 
   $taskIdLabel = $TaskId
@@ -478,7 +481,7 @@ try {
   Write-Log ('  結果出力先   : {0}' -f (Join-Path $OutboxDir $ResultFileName))
   Write-Log ('  ログ         : {0}' -f $LogFile)
   if ($AutoDeploy) {
-    Write-Log '  デプロイ     : task.md の作業範囲・完了条件に含まれる場合のみ実行'
+    Write-Log '  デプロイ     : task.md に明示的な指示と承認がある場合のみ実行'
   } else {
     Write-Log '  デプロイ     : 常に実行しない（commit/push まで）'
   }

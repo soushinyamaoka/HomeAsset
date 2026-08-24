@@ -19,3 +19,6 @@ todo.txt
 # 移行資材（個人データ・パスワードハッシュを含むため絶対にコミットしない）
 *-migration-*.json
 homegear-migration-*.json
+
+# ChatGPT Work / AIファイル受け渡し
+/work/ai_handoff/

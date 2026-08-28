@@ -183,7 +183,7 @@ npm run mobile:start    Expo起動
 ## 自動開発（外部AI指示書のヘッドレス実行）の判断ルール
 
 外部AI（ChatGPT）が配布した指示書を常駐ツール **ai-watch** が検知し、`claude -p` をヘッドレス起動して
-自動で開発・コミット・デプロイまで行う運用がある（ツール本体は複数プロジェクト共用のため**このリポジトリ外**にあり、
+自動で開発・コミットまで行う運用がある（pushとデプロイは明示承認が要る。ツール本体は複数プロジェクト共用のため**このリポジトリ外**にあり、
 ここでは管理しない）。**この運用ではユーザーに質問できない**ため、
 以下の判断基準に従うこと（ヘッドレス実行かどうかに関わらず、迷ったときの基準として適用してよい）。
 
@@ -191,13 +191,16 @@ npm run mobile:start    Expo起動
 
 - 作業指示（入力）: `work/ai_handoff/inbox/task.md`
 - 作業結果（出力）: `work/ai_handoff/outbox/result.md`
+- **Codex経路（Claude→Codex）は入出力が別**: 指示は `work/ai_handoff/claude_to_codex/inbox/task.md`、
+  結果は `work/ai_handoff/claude_to_codex/outbox/result.md`。
+  どちらの経路で起動されたかは、読み込んだ `task.md` の path で判断する。
 - 作業開始時は必ず `task.md` を読み、`task_id` / 作業範囲 / 禁止事項 / 完了条件に従う。
 - **`task.md` 自体は編集・作成・移動しない。**
 - 作業終了時は `result.md` に最低限これを書く:
   `task_id` / `status` / 実施内容 / 変更ファイル / テスト結果 / エラー・未解決事項 / production変更の有無 / 次の判断に必要な情報。
 - `status` は `success` / `failed` / `blocked` / `partial` の4種。中断・承認待ちは `blocked`、
-  「実装とpushは完了したがデプロイのみ承認待ち」のような部分完了は `partial`。
-- 受け渡し規約の**正本は `work/ai_handoff/AI_INSTRUCTIONS.md`**。着手前に必ず読み、記述が食い違う場合はそちらを優先する。
+  「実装とcommitは完了したがpush・デプロイが承認待ち」のような部分完了は `partial`。
+- 受け渡し規約の**正本は `work/ai_handoff/AI_INSTRUCTIONS.md`**（Codex経路では `work/ai_handoff/claude_to_codex/AI_INSTRUCTIONS.md`）。着手前に必ず読み、記述が食い違う場合はそちらを優先する。
 - `result.md` の `task_id` は実行した `task.md` と完全に一致させる。
 - secret / password / token / APIキー / VPS接続情報の**値**を `task.md` / `result.md` に書かない。
 - 長大なログ全文を `result.md` に貼らない。要約し、必要な場合のみ `work/ai_handoff/outbox/` 配下へ別logファイルを保存する。
@@ -223,14 +226,18 @@ npm run mobile:start    Expo起動
 1. 実装（事前に影響範囲を整理する。指示書の「作業範囲」を超えない）
 2. 検証（テストが通ることを確認）
 3. `git commit`（Conventional Commits 形式・説明は日本語）
-4. `git push`
-5. デプロイ（production反映）
 
-デプロイの扱いは「指示された範囲を超える production 変更はしない」という規約が優先される。
-**`task.md` に明示的な指示と承認がある場合のみ**、VPSへの接続・確認・デプロイを行う。
-明記が無い・読み取れない場合は実行せず、commit/push までで止めて `result.md` に `partial`
-（production変更 = なし／デプロイ承認待ち）と記録する。承認自体が不足しているなら `blocked`。
-`apps/mobile` のみの変更ではデプロイしない。デプロイ時は `npm run deploy` のみを使い、`ssh` / `scp` を直接叩かない。
+`git push` とデプロイは**ここに含めない**。
+
+- **push は明示許可制。** `task.md` に push の明示的な指示と承認がある場合だけ実行する。
+  明記が無い・読み取れない場合は commit までで止め、`result.md` に `partial`（push 承認待ち）と記録する。
+  force push、履歴改変、既存変更の revert は、明示があっても行わない。
+- **デプロイは production 変更**であり、「指示された範囲を超える production 変更はしない」という規約が優先される。
+  **`task.md` に明示的な指示と承認がある場合のみ**、VPSへの接続・確認・デプロイを行う。
+  明記が無い・読み取れない場合は実行せず、`result.md` に `partial`
+  （production変更 = なし／デプロイ承認待ち）と記録する。承認自体が不足しているなら `blocked`。
+  `apps/mobile` のみの変更ではデプロイしない。デプロイ時は `npm run deploy` のみを使い、`ssh` / `scp` を直接叩かない。
+
 ブランチは `main` のまま作業し、指示書で明示されない限り新規ブランチ・PR は作らない。
 
 ### VPS運用影響の報告（必須）
@@ -248,6 +255,7 @@ user_maintenance_impact: none | possible | required
 - `notify` / `approval_required` なら通知を `ops/server-change-notices/YYYYMMDD-APP-NNN-summary.md` に作成する
   （雛形と通知ポリシーの正本は VPS管理プロジェクト側。所在は `work/ai_handoff/AI_INSTRUCTIONS.md` を参照。
   別プロジェクトなので読むだけで編集しない）。
+- このリポジトリでは `APP` = `HOMEASSET`、`NNN` = `ops/server-change-notices/` 内の3桁連番（`001` から）。
 - 通知の作成は production 変更の承認ではない。通知を書いてもデプロイはしない。
 - 確認観点: port / bind / URL / health、systemd / Docker / Compose / runtime、env変数名 / secret種類 / 権限、
   DB schema / migration / volume / backup、cron / worker / 外部依存、deploy / downtime / rollback、

@@ -4,17 +4,22 @@ app: homeasset
 canonical_repo: https://github.com/soushinyamaoka/HomeAsset.git
 canonical_ref: main
 updated_at: 2026-08-31
+# 全項目の実機照合は未完了のため null を維持（2026-08-31のVPS管理側事後確認で一部項目は裏付けが取れたが、
+# 網羅的な照合ではないため verified_against_runtime は引き上げない）。
 verified_against_runtime: null
 
 runtime:
   type: docker-compose
-  unit: api
-  working_directory: null
+  unit: api                                  # docker-compose.prod.yml の service名
+  # compose project名: homeasset（VPS管理側の事後確認で確認済み。docker-compose.prod.ymlにname指定は無く、
+  # 配置先ディレクトリ名 homeasset から決定されている。volume名 homeasset_homeasset_pgdata とも整合）
+  working_directory: /home/deploy/homeasset  # docker compose を実行するhost側ディレクトリ（VPS管理側の事後確認で確認済み）
+  # コンテナ内部のWORKDIRは apps/api/Dockerfile より /app/apps/api（VPS管理側の事後確認と一致）
   user: root
   group: root
   language_runtime: node20
   os_packages: [openssl]
-  restart_policy: unless-stopped
+  restart_policy: unless-stopped             # docker-compose.prod.yml および VPS管理側の事後確認と一致
 
 network:
   listeners:
@@ -22,26 +27,31 @@ network:
     - bind: 127.0.0.1
       port: 4001
       protocol: http
-  public: null
+  public: null   # 公開URL・Nginx upstreamの具体構成は未確認（この経路からは確認できない）
   health:
     internal:
       path: /health
       expected_status: 200
       auth_required: false
+    # 公開経路のURL構成は未確認のため public は null のまま。
+    # ただしVPS管理側の事後確認(read-only)では、公開経由のhealthも200だったと報告されている。
     public: null
 
 config:
-  env_file: null
+  # docker-compose.prod.yml に env_file 指定は無く、Composeの既定探索（配置先ディレクトリの .env）による。
+  # 配置先パス自体はVPS管理側の事後確認で確認済みだが、.env ファイルの実在確認はこの経路からは未実施。
+  env_file: /home/deploy/homeasset/.env
   env_vars:
-    - { name: POSTGRES_USER, required: true }
-    - { name: POSTGRES_PASSWORD, required: true }
-    - { name: POSTGRES_DB, required: true }
-    - { name: JWT_SECRET, required: true }
-    - { name: NODE_ENV, required: true }
-    - { name: PORT, required: true }
-    - { name: DATABASE_URL, required: true }
-    - { name: LOG_LEVEL, required: false }
-  secret_provisioning: null
+    - { name: POSTGRES_USER, required: true, secret: false }
+    - { name: POSTGRES_PASSWORD, required: true, secret: true }
+    - { name: POSTGRES_DB, required: true, secret: false }
+    - { name: JWT_SECRET, required: true, secret: true }
+    - { name: NODE_ENV, required: true, secret: false }
+    - { name: PORT, required: true, secret: false }
+    - { name: TZ, required: false, secret: false }   # 追加（commit 0f0782d）。apiコンテナへ Asia/Tokyo を設定
+    - { name: DATABASE_URL, required: true, secret: true }
+    - { name: LOG_LEVEL, required: false, secret: false }
+  secret_provisioning: null   # 実際の投入方式（manual/deploy/external）はこの経路からは確認できない
 
 data:
   databases:
@@ -49,8 +59,9 @@ data:
       version: 16
       name: null
   persistent_paths:
-    - path: /var/lib/postgresql/data
-      backup_required: null
+    - path: /var/lib/postgresql/data           # postgresコンテナ内のマウント先（docker-compose.prod.yml）
+      volume_name: homeasset_homeasset_pgdata  # VPS管理側の事後確認で維持を確認済み
+      backup_required: null                    # backup方針はVPS管理側の判断が必要なため未確定
       regenerable: false
   migrations: automatic
 
@@ -61,16 +72,24 @@ dependencies:
   external: []
 
 deploy:
-  entry: null
+  entry: npm run deploy   # scripts/deploy.ps1 → ssh経由で docker compose -f docker-compose.prod.yml up -d --build api
   downtime: brief-restart
+  # 直前commitからの再ビルドを想定しているが、旧imageの保存・実際のrollback動作は未検証。
+  # VPS管理側の事後確認(2026-08-31)でも「明確な旧image・rollback現物は未確認」と報告されている。
   rollback: null
 
 logging:
   destinations: [stdout]
+  # apiコンテナのDocker log driverはjson-file（VPS管理側の事後確認と一致。docker-compose.prod.ymlに
+  # logging:ドライバ指定は無いためDocker既定）。
+  # アプリ自身のロガー(logger.ts)は1行1JSONで出力するが、Dockerfile CMDの `npx prisma migrate deploy`
+  # ステップ（node dist/server.js 起動前）の出力とnpmの更新通知はプレーンテキストのまま混在する。
+  # 2026-08-31のVPS管理側事後確認: 直近24時間61行中49行がJSON準拠、12行が非JSON
+  # （原因調査結果は ops/server-change-notices/20260831-HOMEASSET-001-summary.md 参照）。
   format: structured
   schema_version: 1
   contains_pii: false
-  rotation: null
+  rotation: null   # json-fileドライバでサイズ上限設定なし（docker-compose.prod.ymlに未指定のためDocker既定）
 
 user_impact:
   direct_users: true

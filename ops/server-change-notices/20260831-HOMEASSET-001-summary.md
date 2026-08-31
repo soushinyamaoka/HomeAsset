@@ -24,7 +24,7 @@ deployment_status: applied
 
 created_by: Codex
 
-updated_by: Claude（事後レビュー対応、2026-08-31。実施済みの事実を反映するための更新。承認状態の遡及的な書き換えは行っていない）
+updated_by: Claude（事後レビュー対応、2026-08-31。実施済みの事実を反映するための更新。承認状態の遡及的な書き換えは行っていない。同日、VPS管理側事後レビューの指摘反映として2回目の更新）
 
 ## 変更概要
 
@@ -59,7 +59,7 @@ server_impact: notify
 
 の順序を踏まず、**HomeAsset側チャットでのユーザー承認のみでproductionへデプロイされた**（本通知がVPS管理側のレビューを経る前）。
 
-VPS管理側は事後にread-only確認を実施し、受理台帳へ`applied`として記録している。**この記録は事後の受理であり、デプロイ前に承認があったことを意味しない。** `app owner`・`production approval`は本書でも引き続き「未承認」と記録する（下記「Approval」）。
+VPS管理側は事後にread-only確認を実施し、受理台帳へ`applied`として記録している。**この記録は事後の受理であり、デプロイ前に承認があったことを意味しない。** HomeAsset側チャットでのユーザー承認はあったが、これは所定のVPS管理フローによる事前承認ではない。両者を区別して記録する（下記「Approval」）。
 
 再発防止のため、`work/ai_handoff/AI_INSTRUCTIONS.md`が同日付で改訂され、「production変更の計画・承認・実施・検証は原則VPS管理チャットで扱う」ことが明記された。
 
@@ -80,7 +80,14 @@ VPS管理側は事後にread-only確認を実施し、受理台帳へ`applied`�
 - 明確な旧image・rollback現物は未確認
 - 実機imageのbuild時刻は09:14:53 JST。実装commit `0f0782d`・通知commit `1e14d9b`より後、`scripts/deploy.ps1`のみを変更した`1cfebce`（09:25 JST頃）より前。`1cfebce`はDockerイメージのビルド対象に含まれないファイルのみの変更のため、実機imageの内容は本通知が対象とする構造化ログ機能を正しく反映している。
 
-残っている確認事項: 公開URL・Nginx upstreamの具体構成、secret provisioning方式、DB backup方針、rollback手順の実地検証。
+残っている確認事項: rollback手順の実地検証、定期backupの実施体制（backup対象であること自体はVPS管理側で確定済み。下記参照）。
+
+**2026-08-31 VPS管理側事後レビューでの追加確定事項**（`ops/runtime-contract.yaml`へ反映済み）:
+
+- 公開URL: `https://homeasset.homehub-tools.dedyn.io`（upstream `127.0.0.1:4001`、TLS: Let's Encrypt）。公開healthは`/health`で200
+- secret_provisioning: `manual`（デプロイスクリプトが`.env`を転送・変更せず、VPS既存の`.env`を使用することを確認済み）
+- DB backup要否: `backup_required: true`（HomeAsset PostgreSQLはバックアップ対象。ただし定期backupの仕組み自体は未整備）
+- logging準拠表記: container全体としては完全準拠していないため`format: plain` / `schema_version: null`へ修正（アプリloggerのJSON行自体は規約準拠。非JSON行の原因は特定済み。下記「Log・監視」参照）
 
 ## 影響対象
 
@@ -117,7 +124,7 @@ secret値は記載しない。
 
 - schema/format変更: なし
 - migration: なし
-- backup対象: 変更なし（volume `homeasset_homeasset_pgdata`維持をVPS管理側で確認済み）
+- backup対象: 変更なし（volume `homeasset_homeasset_pgdata`維持をVPS管理側で確認済み）。DB自体はVPS管理側判定で`backup_required: true`（バックアップ対象）。ただし**定期backupの仕組みは未整備**（下記「未解決事項」参照）
 - restore確認: 本タスクでは対象外
 - backward compatibility: API・DB契約に変更なし
 
@@ -145,6 +152,7 @@ secret値は記載しない。
 - 予約語の未実装: `job_start`、`job_end`、`external_call_failed`、`dependency_failed`は該当場面がないため未実装
 - 新しいalert条件: `startup_failed`、`request_failed`、`uncaught_exception`、`unhandled_rejection`のerror/criticalを監視候補とする
 - secret/個人情報対策: 許可フィールドのみを出力し、認証情報・個人情報・query付きURLを出力しない。redactと自己確認で検証
+- **準拠表記の訂正**: `ops/runtime-contract.yaml`の`logging.format`は`structured`ではなく`plain`、`schema_version`は`1`ではなく`null`に修正した（2026-08-31、VPS管理側判定）。共通ログ規約は完全準拠していない状態を`structured`と記載しないため。アプリ`logger.ts`が出すJSON行自体は規約準拠しており、非構造化行の原因は下記のとおり特定済み。
 
 ### 非JSONログ12行の原因調査（2026-08-31、production非接続・ローカルコード調査のみ）
 
@@ -175,10 +183,11 @@ sh -c "npx prisma migrate deploy --schema prisma/schema.prisma && node dist/serv
 ## 未解決事項
 
 - rollback: 旧imageの保存・実際のrollback動作は未検証（VPS管理側の事後確認でも旧image現物は未確認）。
-- 非JSONログ12行: 原因は特定済み（上記）。改善案は複数提示したが未実装・未承認。
-- `ops/runtime-contract.yaml`の`verified_against_runtime`は引き続き`null`（全項目の実機照合は未完了）。
-- `network.public`（公開URL・Nginx upstreamの具体構成）は未確認。VPS管理側の事後確認で公開health自体は200と報告されているが、URL構成そのものは本経路から確認できていない。
-- `config.secret_provisioning`、`data.persistent_paths[].backup_required`は未確定。
+- 非JSONログ12行: 原因は特定済み（上記）。改善案は複数提示したが未実装・未承認。`ops/runtime-contract.yaml`は`format: plain` / `schema_version: null`へ修正済み（完全準拠していないことを隠さない）。
+- **定期backupの実施体制が未整備**: DBは`backup_required: true`（バックアップ対象）とVPS管理側で判定されたが、定期的にbackupを取得する仕組み自体はまだ無い。体制整備は別途の検討事項とする。
+- `ops/runtime-contract.yaml`の`verified_against_runtime`は引き続き`null`（今回の事後レビューで公開URL/secret provisioning/backup要否等は確定したが、全項目の網羅的な実機照合ではないため）。
+
+**2026-08-31時点で確定済み（参考。上記「VPS管理側の事後確認」欄も参照）**: 公開URL・upstream・TLS、公開health、secret_provisioning（manual）、DB backup要否（true）。
 
 ## 希望時期
 
@@ -186,7 +195,7 @@ VPS管理側の事後レビュー継続後、上記未解決事項の要否判�
 
 ## Approval
 
-- app owner: 未承認（事後デプロイのため、事前のapp owner承認はない）
-- VPS management review: 事後確認実施（read-only）。受理台帳へ`applied`として記録。**事前レビューではない**
-- production approval: **未承認**（遡及的に「承認済み」とはしない）
+- app owner: HomeAsset側チャットで承認あり（2026-08-31、ユーザーがデプロイ実行を承認。ただし所定のVPS管理フローを経た事前承認ではない）
+- VPS management review: 事後レビュー中。受理台帳へ`applied`として記録済み。**事前レビューではない**
+- production approval: 所定のVPS管理フローによる事前承認なし（**遡及的に「承認済み」とはしない**）
 - related task_id: 20260831-003

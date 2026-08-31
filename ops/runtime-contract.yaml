@@ -27,15 +27,20 @@ network:
     - bind: 127.0.0.1
       port: 4001
       protocol: http
-  public: null   # 公開URL・Nginx upstreamの具体構成は未確認（この経路からは確認できない）
+  # VPS管理側の正本に基づく（2026-08-31、事後レビューでの提供）。
+  public:
+    - url: https://homeasset.homehub-tools.dedyn.io
+      upstream: 127.0.0.1:4001
+      tls: letsencrypt
   health:
     internal:
       path: /health
       expected_status: 200
       auth_required: false
-    # 公開経路のURL構成は未確認のため public は null のまま。
-    # ただしVPS管理側の事後確認(read-only)では、公開経由のhealthも200だったと報告されている。
-    public: null
+    # VPS管理側の正本に基づく（2026-08-31、事後レビューでの提供）。
+    public:
+      path: /health
+      expected_status: 200
 
 config:
   # docker-compose.prod.yml に env_file 指定は無く、Composeの既定探索（配置先ディレクトリの .env）による。
@@ -51,7 +56,9 @@ config:
     - { name: TZ, required: false, secret: false }   # 追加（commit 0f0782d）。apiコンテナへ Asia/Tokyo を設定
     - { name: DATABASE_URL, required: true, secret: true }
     - { name: LOG_LEVEL, required: false, secret: false }
-  secret_provisioning: null   # 実際の投入方式（manual/deploy/external）はこの経路からは確認できない
+  # デプロイスクリプト（scripts/deploy.ps1）は .env を転送・変更せず、VPS既存の .env をそのまま使用することを
+  # VPS管理側で確認済み（2026-08-31、事後レビュー）。
+  secret_provisioning: manual
 
 data:
   databases:
@@ -61,7 +68,9 @@ data:
   persistent_paths:
     - path: /var/lib/postgresql/data           # postgresコンテナ内のマウント先（docker-compose.prod.yml）
       volume_name: homeasset_homeasset_pgdata  # VPS管理側の事後確認で維持を確認済み
-      backup_required: null                    # backup方針はVPS管理側の判断が必要なため未確定
+      # backup_requiredは現在の実装状況ではなくバックアップの必要性を表す。HomeAsset PostgreSQLはバックアップ
+      # 対象（VPS管理側判定、2026-08-31）。ただし定期backupの仕組み自体は未整備（下記未解決事項参照）。
+      backup_required: true
       regenerable: false
   migrations: automatic
 
@@ -82,12 +91,16 @@ logging:
   destinations: [stdout]
   # apiコンテナのDocker log driverはjson-file（VPS管理側の事後確認と一致。docker-compose.prod.ymlに
   # logging:ドライバ指定は無いためDocker既定）。
-  # アプリ自身のロガー(logger.ts)は1行1JSONで出力するが、Dockerfile CMDの `npx prisma migrate deploy`
-  # ステップ（node dist/server.js 起動前）の出力とnpmの更新通知はプレーンテキストのまま混在する。
-  # 2026-08-31のVPS管理側事後確認: 直近24時間61行中49行がJSON準拠、12行が非JSON
-  # （原因調査結果は ops/server-change-notices/20260831-HOMEASSET-001-summary.md 参照）。
-  format: structured
-  schema_version: 1
+  #
+  # アプリ自身のロガー(logger.ts)が出すJSON行そのものは共通ログ規約v1に準拠している（ts/app/level/event
+  # を全行保持）。ただし、Dockerfile CMDの `npx prisma migrate deploy` ステップ（node dist/server.js 起動前）
+  # のPrisma CLI出力とnpmの更新通知がプレーンテキストのまま混在し、container全体としては完全準拠していない。
+  # 原因は特定済み（Prisma CLI出力7行＋npm notice 5行、node dist/server.js起動前でロガー未経由）。
+  # 詳細: ops/server-change-notices/20260831-HOMEASSET-001-summary.md「非JSONログ12行の原因調査」参照。
+  # 2026-08-31のVPS管理側事後確認: 直近24時間61行中49行がJSON準拠、12行が非JSON。
+  # 修正または例外方針が確定するまでは非準拠として記録する（VPS管理側判定、2026-08-31）。
+  format: plain
+  schema_version: null
   contains_pii: false
   rotation: null   # json-fileドライバでサイズ上限設定なし（docker-compose.prod.ymlに未指定のためDocker既定）
 

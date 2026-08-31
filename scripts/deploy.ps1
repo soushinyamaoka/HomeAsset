@@ -95,14 +95,17 @@ try {
 
   # --- 4. ヘルスチェック（起動直後は未応答のためリトライ）-------------------
   Write-Host '== [4/4] ヘルスチェック（最大60秒待機）==' -ForegroundColor Cyan
-  # リモート bash で 200 になるまで最大30回×2秒ポーリング。PowerShell に展開させないため単一引用符で渡す。
-  $healthCmd = 'for i in $(seq 1 30); do code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4001/health || true); [ "$code" = "200" ] && break; sleep 2; done; echo "$code"'
-  $code = (ssh $Remote $healthCmd).Trim()
-  if ($code -eq '200') {
-    Write-Host ('  OK (HTTP {0}) — デプロイ完了しました。' -f $code) -ForegroundColor Green
+  # リモート bash で 200 になるまで最大30回×2秒ポーリング。
+  # curl の -w "%{http_code}" を PowerShell -File 経由でネイティブ ssh.exe へ渡すと
+  # 埋め込みダブルクォートと %{...} が壊れ、"%http_code" のような文字列を拾って
+  # 誤って失敗扱いになることを確認したため、二重引用符を使わない形へ変更している。
+  $healthCmd = 'for i in $(seq 1 30); do if curl -sf http://localhost:4001/health > /dev/null; then echo OK; exit 0; fi; sleep 2; done; echo FAIL'
+  $result = (ssh $Remote $healthCmd).Trim()
+  if ($result -eq 'OK') {
+    Write-Host '  OK — デプロイ完了しました。' -ForegroundColor Green
   }
   else {
-    throw ("ヘルスチェック失敗 (HTTP {0})。ログ確認: ssh vps `"docker logs --tail 50 homeasset-api-prod`"" -f $code)
+    throw 'ヘルスチェック失敗。ログ確認: ssh vps "docker logs --tail 50 homeasset-api-prod"'
   }
 }
 finally {

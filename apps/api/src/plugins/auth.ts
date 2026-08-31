@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import jwt from '@fastify/jwt';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import { log, requestLogTarget } from '../lib/logger';
 import { prisma } from '../lib/prisma';
 
 declare module 'fastify' {
@@ -35,6 +36,11 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       try {
         await req.jwtVerify();
       } catch (err) {
+        log.warn('auth_failed', {
+          has_token: Boolean(req.headers.authorization),
+          req_id: req.id,
+          target: requestLogTarget(req),
+        });
         return reply.code(401).send({ message: '認証が必要です' });
       }
 
@@ -44,6 +50,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
         orderBy: { createdAt: 'asc' },
       });
       if (!membership) {
+        log.warn('auth_forbidden', { user_id: userId, req_id: req.id });
         return reply.code(403).send({ message: '所属している家庭が見つかりません' });
       }
       req.auth = {

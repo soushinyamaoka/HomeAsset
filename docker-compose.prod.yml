@@ -34,6 +34,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
+      TZ: Asia/Tokyo
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       JWT_SECRET: ${JWT_SECRET}
     ports:

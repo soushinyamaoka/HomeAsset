@@ -1,0 +1,78 @@
+schema_version: 1
+app: homeasset
+
+canonical_repo: https://github.com/soushinyamaoka/HomeAsset.git
+canonical_ref: main
+updated_at: 2026-08-31
+verified_against_runtime: null
+
+runtime:
+  type: docker-compose
+  unit: api
+  working_directory: null
+  user: root
+  group: root
+  language_runtime: node20
+  os_packages: [openssl]
+  restart_policy: unless-stopped
+
+network:
+  listeners:
+    # Composeはホスト側をloopbackに限定し、コンテナ内プロセスは0.0.0.0で待ち受ける。
+    - bind: 127.0.0.1
+      port: 4001
+      protocol: http
+  public: null
+  health:
+    internal:
+      path: /health
+      expected_status: 200
+      auth_required: false
+    public: null
+
+config:
+  env_file: null
+  env_vars:
+    - { name: POSTGRES_USER, required: true }
+    - { name: POSTGRES_PASSWORD, required: true }
+    - { name: POSTGRES_DB, required: true }
+    - { name: JWT_SECRET, required: true }
+    - { name: NODE_ENV, required: true }
+    - { name: PORT, required: true }
+    - { name: DATABASE_URL, required: true }
+    - { name: LOG_LEVEL, required: false }
+  secret_provisioning: null
+
+data:
+  databases:
+    - engine: postgresql
+      version: 16
+      name: null
+  persistent_paths:
+    - path: /var/lib/postgresql/data
+      backup_required: null
+      regenerable: false
+  migrations: automatic
+
+jobs: []
+
+dependencies:
+  internal: [postgres]
+  external: []
+
+deploy:
+  entry: null
+  downtime: brief-restart
+  rollback: null
+
+logging:
+  destinations: [stdout]
+  format: structured
+  schema_version: 1
+  contains_pii: false
+  rotation: null
+
+user_impact:
+  direct_users: true
+  client_apps: [HomeAsset mobile]
+  user_facing_functions: [家庭内資産・住宅設備管理]

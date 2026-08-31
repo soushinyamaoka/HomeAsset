@@ -13,6 +13,7 @@
     "prisma:reset": "prisma migrate reset",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "log:selfcheck": "tsx scripts/log-selfcheck.ts",
     "migrate:homegear": "tsx scripts/migrate-homegear.ts"
   },
   "prisma": {
@@ -28,6 +29,7 @@
     "dotenv": "^16.4.5",
     "fastify": "^5.8.5",
     "fastify-plugin": "^5.0.1",
+    "pino": "^10.3.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

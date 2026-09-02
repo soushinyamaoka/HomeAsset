@@ -92,15 +92,11 @@ logging:
   # apiコンテナのDocker log driverはjson-file（VPS管理側の事後確認と一致。docker-compose.prod.ymlに
   # logging:ドライバ指定は無いためDocker既定）。
   #
-  # アプリ自身のロガー(logger.ts)が出すJSON行そのものは共通ログ規約v1に準拠している（ts/app/level/event
-  # を全行保持）。ただし、Dockerfile CMDの `npx prisma migrate deploy` ステップ（node dist/server.js 起動前）
-  # のPrisma CLI出力とnpmの更新通知がプレーンテキストのまま混在し、container全体としては完全準拠していない。
-  # 原因は特定済み（Prisma CLI出力7行＋npm notice 5行、node dist/server.js起動前でロガー未経由）。
-  # 詳細: ops/server-change-notices/20260831-HOMEASSET-001-summary.md「非JSONログ12行の原因調査」参照。
-  # 2026-08-31のVPS管理側事後確認: 直近24時間61行中49行がJSON準拠、12行が非JSON。
-  # 修正または例外方針が確定するまでは非準拠として記録する（VPS管理側判定、2026-08-31）。
-  format: plain
-  schema_version: null
+  # Prisma CLI・npm由来の非JSON行は解消済み。entrypointがmigration出力を構造化eventへ変換し、
+  # 成功系・失敗系ともcontainerの全出力が1行JSONであることをローカル検証した。
+  # 詳細: ops/server-change-notices/20260902-HOMEASSET-002-summary.md参照。
+  format: structured
+  schema_version: 1
   contains_pii: false
   rotation: null   # json-fileドライバでサイズ上限設定なし（docker-compose.prod.ymlに未指定のためDocker既定）
 

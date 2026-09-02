@@ -20,7 +20,7 @@ production_change: required
 
 vps_management_handoff: required
 
-deployment_status: not_started
+deployment_status: verified
 
 user_maintenance_impact: possible
 
@@ -60,17 +60,17 @@ server_impact: notify
 ## production変更
 
 - 必要性: あり
-- 想定作業: VPS管理側でreviewとproduction承認を得た後、APIコンテナimageを更新
-- downtime: APIコンテナ入れ替え時の短時間再起動の可能性あり
-- maintenance window: 実施時刻と利用者への事前通知要否をproduction計画で決定
+- 実施結果: 2026-09-02 11:48 JST、VPS管理側が承認済みtask `20260902-002`としてAPIコンテナimageを更新
+- downtime: APIコンテナ入れ替え時に短時間の再起動あり。health待機中の一時的なconnection reset後、internal/publicとも200へ復帰
+- maintenance window: 妻への通知・不使用確認後に実施
 
-`production_change: required`のため、`deployment_status: not_started`のままVPS管理側へ引き継ぐ。本通知はデプロイ承認ではなく、本タスクではVPSへの接続・確認・デプロイを一切行わない。
+新API image `sha256:1943cddd3e87de280bfe6b83d7e690e99ff8ca2c10c9197c74912f1ae4d0b354`を反映し、API/DB稼働、health、bind、DB image/volume不変、起動ログを確認した。productionの進行状態はVPS管理側受理台帳を正本とする。
 
 ## 利用者への影響
 
 - user_maintenance_impact: possible
 - 対象利用者・機能: API contractと業務機能に変更なし
-- 通知方法: API container入れ替え中に短時間利用できない可能性があるため、production計画時にVPS管理側が判断
+- 通知方法: 妻への事前通知・不使用確認を実施済み。反映後の利用者影響は確認されていない
 
 ## env・secret contract
 
@@ -91,11 +91,11 @@ secret値は記載しない。
 ## Deploy・rollback
 
 - deploy前提: VPS管理側reviewとproduction個別承認が必要
-- deploy手順の変更: APIコンテナ内部のCMDのみ変更。production作業は本タスクで未実施
-- rollback方法: 未確立。production反映前にVPS管理側が現行sourceと現行API imageを保全し、既存のCompose設定・env・network・port・DB volumeを維持したまま旧版へ戻す具体的手順とhealth確認を実施計画へ記載する
+- deploy手順の変更: APIコンテナ内部のCMDのみ変更。VPS管理側がsource/imageを保全後、APIだけをbuild・入れ替え
+- rollback方法: 旧sourceを`/home/deploy/backups/homeasset/20260902-002/source-before.tgz`、旧API imageを`homeasset-api:rollback-20260902-002`として保全。旧imageを`homeasset-api:latest`へ戻し、同じComposeと既存`.env`でAPIだけを再作成する手順を確定済み
 - rollback不能条件: DB schema・persistent dataの変更を含まないため、本変更固有のdata rollback不能条件なし
 
-本通知はデプロイ承認ではなく、本タスクではVPSへの接続・デプロイを一切行わない。`deployment_status`は`not_started`のままとする。
+rollback条件に該当せず、rollbackは実施していない。DB container、DB image、DB volume、`.env`は変更していない。
 
 ## Health・テスト
 
@@ -107,7 +107,8 @@ secret値は記載しない。
   - ローカル開発用DBを使用した成功系・失敗系entrypoint検証
   - Linuxコンテナ上でのSIGTERM転送確認
 - 結果: すべて成功。成功系7行・失敗系2行の全出力がJSONで、health 200、正常shutdown、migration失敗時のserver未起動と非0終了を確認
-- 未実施テストと理由: production検証は未承認かつ本経路で禁止されているため未実施
+- production検証: API/DB running、internal/public health 200、bind `127.0.0.1:4001`、restart count 0、DB image/volume不変を確認
+- 起動ログ検証: 8行すべてJSON、必須field欠落0、`migration_start` 1件、成功した`migration_end` 1件、`startup` 1件、critical/failure/禁止pattern 0件
 
 ## Log・監視
 
@@ -118,11 +119,12 @@ secret値は記載しない。
 
 ## 未解決事項
 
-- VPS管理側review、production承認、production反映、反映後のログ確認は未実施
+- `migration_end`かつ`status: failure`の自動監視追加は、VPS管理側の段階3 collector作業で継続する
+- build時の既存dependency audit結果（1 low、2 high）は今回の変更で追加されたものではなく、別途dependency管理課題として扱う
 
 ## 希望時期
 
-VPS管理側reviewとproduction個別承認後。
+2026-09-02に反映・検証済み。
 
 ## VPS管理チャットへの引き継ぎ
 
@@ -133,6 +135,6 @@ VPS管理側reviewとproduction個別承認後。
 ## Approval
 
 - app owner: task実装を承認済み
-- VPS management review: 2026-09-02実施、blocked（実装・通知・文書修正commitのpush待ち。rollbackはproduction計画で確定する）
-- production approval: 未承認
-- related task_id: 20260902-001
+- VPS management review: 2026-09-02受理・production検証完了
+- production approval: 2026-09-02、妻への通知・不使用確認後、task `20260902-002`の即時反映をユーザーが個別承認
+- related task_id: 20260902-001, 20260902-002

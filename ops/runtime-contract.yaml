@@ -94,6 +94,7 @@ logging:
   #
   # Prisma CLI・npm由来の非JSON行は解消済み。entrypointがmigration出力を構造化eventへ変換し、
   # 成功系・失敗系ともcontainerの全出力が1行JSONであることをローカル検証した。
+  # 2026-09-02のproduction反映後、起動ログ8行すべてのJSON parse成功と必須field、migration成功を確認した。
   # 詳細: ops/server-change-notices/20260902-HOMEASSET-002-summary.md参照。
   format: structured
   schema_version: 1

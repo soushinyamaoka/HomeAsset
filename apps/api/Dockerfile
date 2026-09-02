@@ -49,4 +49,4 @@ COPY --from=builder /app/apps/api/prisma /app/apps/api/prisma
 EXPOSE 4001
 
 # 起動時にマイグレーション適用 → サーバ起動
-CMD ["sh", "-c", "npx prisma migrate deploy --schema prisma/schema.prisma && node dist/server.js"]
+CMD ["node", "dist/entrypoint.js"]

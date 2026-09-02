@@ -11,6 +11,8 @@ export type LogEvent =
   | 'auth_forbidden'
   | 'uncaught_exception'
   | 'unhandled_rejection'
+  | 'migration_start'
+  | 'migration_end'
   | 'app_log';
 
 type LogFields = Record<string, unknown> & {

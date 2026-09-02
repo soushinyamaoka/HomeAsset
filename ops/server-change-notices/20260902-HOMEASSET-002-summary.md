@@ -8,9 +8,9 @@ source_branch: main
 
 source_commit: d11a8a9d0f04e62aa8e7d53bb50d90253bcac434
 
-impact_level: L1
+impact_level: L2
 
-status: draft
+status: ready_for_review
 
 created_by: Codex
 
@@ -22,7 +22,7 @@ vps_management_handoff: required
 
 deployment_status: not_started
 
-user_maintenance_impact: none
+user_maintenance_impact: possible
 
 ## 変更概要
 
@@ -36,7 +36,7 @@ user_maintenance_impact: none
 
 server_impact: notify
 
-判定理由: Dockerfileの起動commandとコンテナ起動時ログ形式を変更し、アプリ固有eventを2件追加する。出力先、port、URL、health、API・DB contract、env・secret contract、依存packageは変更しないためL1とする。
+判定理由: Dockerfileの起動commandとコンテナ起動時ログ形式を変更し、API imageの再構築・container入れ替えと短時間の再起動を伴うためL2とする。出力先、port、URL、health、API・DB contract、env・secret contract、依存packageは変更しない。
 
 ## 現在と変更後
 
@@ -62,15 +62,15 @@ server_impact: notify
 - 必要性: あり
 - 想定作業: VPS管理側でreviewとproduction承認を得た後、APIコンテナimageを更新
 - downtime: APIコンテナ入れ替え時の短時間再起動の可能性あり
-- maintenance window: 利用者向けmaintenanceは不要
+- maintenance window: 実施時刻と利用者への事前通知要否をproduction計画で決定
 
 `production_change: required`のため、`deployment_status: not_started`のままVPS管理側へ引き継ぐ。本通知はデプロイ承認ではなく、本タスクではVPSへの接続・確認・デプロイを一切行わない。
 
 ## 利用者への影響
 
-- user_maintenance_impact: none
+- user_maintenance_impact: possible
 - 対象利用者・機能: API contractと業務機能に変更なし
-- 通知方法: 利用者向け通知なし
+- 通知方法: API container入れ替え中に短時間利用できない可能性があるため、production計画時にVPS管理側が判断
 
 ## env・secret contract
 
@@ -92,7 +92,7 @@ secret値は記載しない。
 
 - deploy前提: VPS管理側reviewとproduction個別承認が必要
 - deploy手順の変更: APIコンテナ内部のCMDのみ変更。production作業は本タスクで未実施
-- rollback方法: 実装commitの直前commitへ戻したAPI imageを再構築する想定。productionでの実施はVPS管理側の判断対象
+- rollback方法: 未確立。production反映前にVPS管理側が現行sourceと現行API imageを保全し、既存のCompose設定・env・network・port・DB volumeを維持したまま旧版へ戻す具体的手順とhealth確認を実施計画へ記載する
 - rollback不能条件: DB schema・persistent dataの変更を含まないため、本変更固有のdata rollback不能条件なし
 
 本通知はデプロイ承認ではなく、本タスクではVPSへの接続・デプロイを一切行わない。`deployment_status`は`not_started`のままとする。
@@ -127,12 +127,12 @@ VPS管理側reviewとproduction個別承認後。
 ## VPS管理チャットへの引き継ぎ
 
 - 引き継ぎ要否: 必要
-- ユーザーへの案内: 未実施（非対話実行経路のため、resultの引き継ぎfieldのみ記録）
+- ユーザーへの案内: 2026-09-02実施済み。ユーザーからVPS管理チャットへ本通知pathが引き継がれた
 - VPS管理チャットへ渡すpath: `ops/server-change-notices/20260902-HOMEASSET-002-summary.md`
 
 ## Approval
 
 - app owner: task実装を承認済み
-- VPS management review: 未実施
+- VPS management review: 2026-09-02実施、blocked（実装・通知・文書修正commitのpush待ち。rollbackはproduction計画で確定する）
 - production approval: 未承認
 - related task_id: 20260902-001

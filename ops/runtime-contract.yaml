@@ -3,7 +3,7 @@ app: homeasset
 
 canonical_repo: https://github.com/soushinyamaoka/HomeAsset.git
 canonical_ref: main
-updated_at: 2026-08-31
+updated_at: 2026-09-02
 # 全項目の実機照合は未完了のため null を維持（2026-08-31のVPS管理側事後確認で一部項目は裏付けが取れたが、
 # 網羅的な照合ではないため verified_against_runtime は引き上げない）。
 verified_against_runtime: null
@@ -83,8 +83,8 @@ dependencies:
 deploy:
   entry: npm run deploy   # scripts/deploy.ps1 → ssh経由で docker compose -f docker-compose.prod.yml up -d --build api
   downtime: brief-restart
-  # 直前commitからの再ビルドを想定しているが、旧imageの保存・実際のrollback動作は未検証。
-  # VPS管理側の事後確認(2026-08-31)でも「明確な旧image・rollback現物は未確認」と報告されている。
+  # 旧imageの保存・実際のrollback動作は未検証。20260902-HOMEASSET-002のproduction反映前に、
+  # VPS管理側が現行source/imageの保全と具体的な復旧・health確認手順を実施計画で確定する。
   rollback: null
 
 logging:

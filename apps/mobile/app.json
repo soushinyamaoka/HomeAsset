@@ -8,11 +8,6 @@
     },
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#1565C0"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.example.homeasset",
@@ -43,6 +38,14 @@
           "android": {
             "usesCleartextTraffic": true
           }
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "resizeMode": "contain",
+          "backgroundColor": "#1565C0"
         }
       ]
     ],

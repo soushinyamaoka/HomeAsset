@@ -40,14 +40,7 @@
           }
         }
       ],
-      "expo-status-bar",
-      [
-        "expo-splash-screen",
-        {
-          "resizeMode": "contain",
-          "backgroundColor": "#1565C0"
-        }
-      ]
+      "expo-status-bar"
     ],
     "owner": "soushin.yamaoka",
     "updates": {

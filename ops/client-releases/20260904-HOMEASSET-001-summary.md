@@ -6,9 +6,9 @@ release_id: 20260904-HOMEASSET-001
 
 app: HomeAsset (apps/mobile)
 
-status: published
+status: verified
 
-created_by: Claude（事後記録、2026-09-06。配信自体は2026-09-04に実施済み）
+created_by: Claude（事後記録、2026-09-06。配信自体は2026-09-04に実施済み。2026-09-07にユーザーの実機確認結果を追記）
 
 ## 記録作成の経緯（重要）
 
@@ -23,7 +23,7 @@ created_by: Claude（事後記録、2026-09-06。配信自体は2026-09-04に実
 
 ```text
 client_distribution: required
-client_distribution_status: published
+client_distribution_status: verified
 client_release_record: ops/client-releases/20260904-HOMEASSET-001-summary.md
 ```
 
@@ -103,8 +103,8 @@ DB/APIとの依存はないため、rollbackに伴うデータ側の互換性問
 
 ### 対象端末での確認結果
 
-**未確認。** 本記録作成時点（2026-09-06）で、実機での起動確認結果はチャット上で報告されていない。
-ユーザー自身による実機確認を推奨する。
+2026-09-07、ユーザーより実機確認で問題なかったと報告あり。具体的な確認端末・OSバージョン・
+確認した画面/機能の内訳は報告されていないため、それ以上の詳細はここには記録しない。
 
 ## iOS配信（Expo Go経由）
 
@@ -143,11 +143,12 @@ Expo Goの対応SDK範囲によっては、この過去updateへの単純な「�
 
 ### 対象端末での確認結果
 
-**未確認。** ユーザーからExpo Goでの読み込み成功・起動確認の報告はまだ受けていない。
+2026-09-07、ユーザーより実機確認で問題なかったと報告あり（Android分と同時に報告）。
+Expo Goアプリ自体がSDK 57対応版であったこと、およびQRコード読み取り経由での起動成功を含意するが、
+Expo Goのバージョン番号等の詳細は報告されていない。
 
 ## 未解決事項
 
-- Android・iOSともに、実機での起動確認結果が未報告。
 - `preview`channelのAndroid向け更新（Runtime `0.1.0`）が、`android-internal`以外の実端末に
   意図せず配信される経路がないか未確認。
 - iOSのrollback手順（Expo Go側のSDK対応範囲に依存）は実地未検証。

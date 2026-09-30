@@ -20,7 +20,7 @@ release_commits: baselineからsourceまで7件（下記「変更概要」）
 
 impact_level: L2
 
-status: draft
+status: ready_for_review
 
 created_by: Claude
 
@@ -134,7 +134,7 @@ server_impact: notify
 正本: `C:\work\PRG\Sakura\Dev\vps-server-management\docs\templates\server_change_notice_pre_submission_checklist.md`（checklist_version 2、2026-09-30実施）
 
 - [x] production baseline（`production_deployments.yaml`、`d11a8a9`、updated_at 2026-09-29）とrelease全7commit・build入力差分を確認した（`d11a8a9`は`HEAD`の祖先）
-- [ ] source commitとnoticeのremote push → 下記「未解決事項」に結果を記載（push後に更新）
+- [x] source commit `eb5236f`はremote `main`にpush済み。noticeはdraftとして`5f16dee`でpushし、実remote（`git ls-remote`）とlocal HEADの一致を確認後にready_for_reviewへ更新（更新commitのpushと一致確認はこの後に実施）
 - [x] data更新なし（transaction・同時実行・再実行は該当なし）
 - [x] image rollbackとdata rollbackを分けた（data rollback該当なし・backup/restore不要）
 - [x] job/log/retention: 変更なし。runtime/dependency: lockfile差分1件を確認。client配信: 別recordで分離
@@ -152,7 +152,7 @@ server_impact: notify
 
 - `content-type` 2.1.0のAPI実動作は未確認（build成功のみ）。
 - 本noticeの扱い（次回releaseへ同梱／baseline整合のみ／対応不要）はVPS管理側の判断。
-- VPS管理側read-only preflight・実remote照合の結果: push後に追記する。
+- **VPS管理側read-only preflight（`tools/review_notice_preflight.ps1`）は未実行**: PowerShell 7（`pwsh`）が無く、Windows PowerShell 5.1では構文エラー・`Path.GetRelativePath`未対応で実行不能（VPS管理側のscriptは編集していない）。代替としてbaseline祖先確認、`git diff --name-only`によるbuild入力差分、tarball内容、実remote照合（`git ls-remote`）を手動で実施した。機微値パターンの機械走査は未実施（差分が`package-lock.json`とmobile manifestのみで、目視上secretなし）。
 
 ## 希望時期
 

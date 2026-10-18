@@ -202,6 +202,7 @@ Expo の QR コードを Expo Go で読み取って開きます。
 - `POST /api/ai-import/parse`, `POST /api/assets/:id/ai-import/apply`, `POST /api/ai-import/create-and-apply`
 - `GET /api/dashboard`
 - `GET /api/export/json`
+- `GET /api/export/ai?includeNetwork=true|false` … 他AIへ渡す整理済みJSON（説明ガイド付き・内部ID除外・ネットワーク情報は既定で除外）
 
 ## モバイル画面構成
 

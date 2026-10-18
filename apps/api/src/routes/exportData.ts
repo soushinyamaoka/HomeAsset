@@ -1,8 +1,35 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../lib/prisma';
 import { serializeAsset } from '../utils/serialize';
+import { aiExportQuerySchema } from '@homeasset/shared';
+import { buildAiExport } from '../utils/aiExport';
 
 const exportRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/ai', async (req, reply) => {
+    const parsed = aiExportQuerySchema.safeParse(req.query);
+    if (!parsed.success) return reply.code(400).send({ message: '検索条件が不正です' });
+    const householdId = req.auth.householdId;
+    const [household, assets] = await Promise.all([
+      prisma.household.findUnique({ where: { id: householdId }, select: { name: true } }),
+      prisma.homeAsset.findMany({
+        where: { householdId },
+        include: {
+          category: true,
+          location: { include: { parent: true } },
+          specs: { orderBy: { sortOrder: 'asc' } },
+          links: true,
+          maintenanceRecords: { orderBy: { maintenanceDate: 'desc' } },
+          repairRecords: { orderBy: { occurredDate: 'desc' } },
+          consumables: true,
+          accessories: true,
+          networkInfo: true,
+          actionPlan: true,
+        },
+      }),
+    ]);
+    return buildAiExport({ householdName: household?.name, assets: assets.map((asset) => serializeAsset(asset)) }, parsed.data);
+  });
+
   app.get('/json', async (req, reply) => {
     const householdId = req.auth.householdId;
 

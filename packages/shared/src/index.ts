@@ -13,3 +13,4 @@ export * from './schemas/actionPlanAi';
 export * from './schemas/network';
 export * from './schemas/master';
 export * from './schemas/aiImport';
+export * from './schemas/aiExport';

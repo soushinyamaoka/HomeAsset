@@ -20,7 +20,7 @@ release_commits: 下記「release境界」の全commit（baseline以降の未反
 
 impact_level: L2
 
-status: draft
+status: ready_for_review
 
 created_by: Claude（実装はCodex task 20261018-001/002、最終修正・検証・文書化はClaude）
 
@@ -147,7 +147,7 @@ TLS、health、env/secret、DB schema/data、cron/worker、log形式、起動com
 正本: `C:\work\PRG\Sakura\Dev\vps-server-management\docs\templates\server_change_notice_pre_submission_checklist.md`（checklist_version 2、2026-10-18実施。このアプリでの初回実施）
 
 - [x] production baseline（`d11a8a9`、HEADの祖先）とrelease全commit・build入力差分を確認した。API依存閉包の差分は`content-type`1件
-- [ ] source commitとnoticeのremote push（push承認待ち。push後に実remoteとの一致を追記する）
+- [x] source commit `242ac1b`とnotice本体（`6954c00`）を`origin/main`へpushし、実remote（`git ls-remote`）とlocal HEADの一致を確認した。ready_for_reviewへの更新commitは別途pushし一致を確認する
 - [x] data更新なし（読み取り専用GET。transaction・同時実行・途中失敗・再実行は該当なし。何度呼んでも同じ結果）
 - [x] image rollbackとdata rollbackを分けた（data rollback該当なし、backup/restore不要）
 - [x] job/log/retention: 変更なし。runtime/dependency: Dockerfile・Compose差分0、lockfile整合確認済み。client配信: 別recordで分離
@@ -165,7 +165,6 @@ TLS、health、env/secret、DB schema/data、cron/worker、log形式、起動com
 ## 未解決事項
 
 - 実DB・実HTTPでの疎通確認は未実施（上記）
-- push未実施（app owner承認待ち）
 - preflight未実行（上記）
 
 ## 希望時期
@@ -175,12 +174,12 @@ TLS、health、env/secret、DB schema/data、cron/worker、log形式、起動com
 ## VPS管理チャットへの引き継ぎ
 
 - 引き継ぎ要否: 必要
-- ユーザーへの案内: 未実施（push後に案内する）
+- ユーザーへの案内: 実施済み（最終回答に記載）
 - VPS管理チャットへ渡すローカル絶対path: `C:\work\PRG\HomeTools\HomeAsset\HomeAsset\ops\server-change-notices\20261018-HOMEASSET-003-summary.md`
 
 ## Approval
 
-- app owner: 機能の実装・commitをチャットで指示（2026-10-18）。production反映の承認ではない
+- app owner: 機能の実装・commit・pushをチャットで承認（2026-10-18）。production反映の承認ではない
 - VPS management review: 未実施
 - production approval: なし（`deployment_status: not_started`）
 - related task_id: 20261018-001, 20261018-002

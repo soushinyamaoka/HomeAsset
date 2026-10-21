@@ -22,3 +22,8 @@ homegear-migration-*.json
 
 # ChatGPT Work / AIファイル受け渡し
 /work/ai_handoff/
+
+# 月次分析の入力・出力（実データをGitへ含めない）
+/local-input/
+/local-output/
+__pycache__/

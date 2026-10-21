@@ -14,13 +14,15 @@ source_branch: main
 
 source_commit: 5995aa0db0c42651d30dc7d1072de31608bd8da8
 
-production_baseline_commit: a916f6b7475e655d10b71fa9779d636b98e0c97f（app owner報告による。下記「release境界」の注意を参照）
+production_baseline_commit: 242ac1b4f946af70ba645c86cd1cde8ee551b82c
 
-release_commits: 5995aa0 のみ
+release_commits: 6954c002ff37de8774c4ca4b9d7359ecf74c8c1c, a916f6b7475e655d10b71fa9779d636b98e0c97f, 5995aa0db0c42651d30dc7d1072de31608bd8da8
 
 impact_level: L2
 
 status: ready_for_review
+
+previous_review_commit: ffa1e9e89e84fef4a01b3eb81061ee959bf510ab
 
 created_by: Claude（app ownerの依頼による互換性検証と文書化、2026-10-22）
 
@@ -49,18 +51,38 @@ root `package.json` の古い `overrides`（`expo-font` 14.0.11、Expo SDK 54時
 
 ## release境界
 
-| commit | 内容 | API image build入力への影響 |
-|---|---|---|
-| `5995aa0` | Dockerfile 2行（FROM）・root `package.json` の `overrides` 削除 | あり |
+production baselineはVPS管理側の正本 `production_deployments.yaml` の `242ac1b4f946af70ba645c86cd1cde8ee551b82c`
+（2026-10-18のrelease recordで反映確認済み、レビュー記録の指摘による）。baselineはsource commitの祖先であることを確認済み。
 
-- baselineの注意: VPS管理側の `production_deployments.yaml`（このPCのcheckout）では、homeassetの
-  `deployed_source_commit` がまだ `d11a8a9`（2026-09-02）のままになっている。app ownerからは 20261018-HOMEASSET-003
-  （`a916f6b`）をproductionへ反映済みと報告を受けており、未認証の確認でも `GET /api/export/ai` は404ではなく401を返す
-  （2026-10-18）。**productionの実baselineが `a916f6b` であることをVPS管理側の正本で確認してほしい。**
-  もし `d11a8a9` のままだと、本notice適用時に 003 のAI共有用エクスポート（`242ac1b`）も同時に入ってしまう
-- 未反映の別機能（作業ツリー上の月次レポート関連の未commitファイル: `docs/monthly-*.md`、`scripts/monthly-report/`、
-  `README.md`・`.gitignore` の変更）は本releaseに含めない。commitしておらず、`deploy.ps1` の送信対象path
-  （`package.json`、`package-lock.json`、`packages/shared`、`apps/api`、`apps/mobile/package.json`、compose、`.dockerignore`）にも入らない
+baseline `242ac1b` から source commit `5995aa0` までの全commit:
+
+| commit | 内容 | 変更ファイル | deploy artifact（`deploy.ps1` 送信対象）への影響 |
+|---|---|---|---|
+| `6954c00` | 003のnotice・client配信計画・README追記（docsのみ） | `ops/server-change-notices/20261018-HOMEASSET-003-summary.md`、`ops/client-releases/20261018-HOMEASSET-002-summary.md`、`README.md` | なし（artifact対象外） |
+| `a916f6b` | 003のnoticeをready_for_reviewへ更新（docsのみ） | `ops/server-change-notices/20261018-HOMEASSET-003-summary.md` | なし（artifact対象外） |
+| `5995aa0` | **本変更**: Node 24.22.1へのbase更新・古いoverridesの削除 | `apps/api/Dockerfile`、`package.json` | **あり**（両ファイルともbuild入力） |
+
+baseline→sourceの差分は5ファイル（`git diff --stat 242ac1b 5995aa0`）。うちartifact対象は `apps/api/Dockerfile` と `package.json` の2つだけで、
+`package-lock.json`・`packages/shared`・`apps/api` のソース・`apps/mobile/package.json`・compose・`.dockerignore` は差分0。
+
+source commitより後のcommit（いずれもartifact対象外）:
+
+| commit | 内容 | 変更ファイル |
+|---|---|---|
+| `3c474d1` | 本noticeの追加 | `ops/server-change-notices/20261022-HOMEASSET-004-summary.md` |
+| `ffa1e9e` | 本noticeをready_for_reviewへ更新（前回の提出） | 同上 |
+| `d4a8f18` | 月次分析の入出力（`local-input/`、`local-output/`）と `__pycache__/` を `.gitignore` に追加（実データの誤commit防止） | `.gitignore` |
+| 本再提出のcommit | baseline・release範囲・preflight結果の訂正 | 本notice |
+
+### 作業ツリーと未追跡ファイル
+
+- tracked worktreeはclean（再提出時点）。前回の提出時に残っていた2件は次のように解消した:
+  - `.gitignore`: 実データの出力先 `local-output/` が既にあるため、戻さずにcommitした（`d4a8f18`）
+  - `README.md`: 未リリースの月次レポート文書へのリンクの追記だったため、`git stash` に退避した（内容は保持）
+- 未追跡の31件（`docs/monthly-*.md` 5件、`scripts/monthly-report/` 26件）は、未リリースの月次レポート関連として保持しており、本releaseには含めない
+- `deploy.ps1 -DryRun`（2026-10-22、tracked clean・未追跡31件ありの状態）: 送信78件で前回と同じ。未追跡ファイル、`docs/`・`scripts/`・`ops/`・
+  `README.md`・`.gitignore`・`local-output/`、`.env*`・`node_modules`・`dist` は含まれない。送信対象pathは
+  `package.json`、`package-lock.json`、`packages/shared`、`apps/api`、`apps/mobile/package.json`、`docker-compose.prod.yml`、`.dockerignore` だけ
 
 ## server_impact判定
 
@@ -122,17 +144,17 @@ health、env/secret、DB schema/data、cron/worker、log形式、起動command�
 
 ## Deploy・rollback
 
-- deploy前提: VPS管理側の承認。作業ツリーに未commitファイルがあるため、deployは `5995aa0` のclean checkoutから行うか、
-  送信対象pathに未commitの変更がないこと（`deploy.ps1 -DryRun`）を確認してから行う
+- deploy前提: VPS管理側の承認。作業ツリーには未追跡の月次レポート関連ファイルがあるが、送信対象pathの外にあり、`deploy.ps1 -DryRun` で
+  含まれないことを確認済み（上記「作業ツリーと未追跡ファイル」）。deploy直前にも `-DryRun` で送信内容を確認する
 - deploy手順の変更: なし
-- rollback方法: image rollbackのみ。`a916f6b` のsource（Node 20 base）で再build・再起動。data rollbackは不要（書き込みなし、
+- rollback方法: image rollbackのみ。baseline `242ac1b` のsource（Node 20 base）で再build・再起動。`242ac1b` と `a916f6b` はartifact対象ファイルが同一（間のcommitはdocsのみ）で、検証の比較に使ったNode 20 imageはこのsourceに相当する。data rollbackは不要（書き込みなし、
   migration追加なし。同じDBでNode 20 imageが正常に動くことは検証済み）
 - rollback不能条件: なし
 
 ## Health・テスト
 
 - health contract変更: なし
-- 実施テスト（ローカルのDocker 29.5.2、production非接続、2026-10-22）。HEAD `a916f6b` を `git archive` で取り出したclean source
+- 実施テスト（ローカルのDocker 29.5.2、production非接続、2026-10-22）。HEAD `a916f6b`（artifact対象ファイルはbaseline `242ac1b` と同一）を `git archive` で取り出したclean source
   にDockerfileの変更とoverridesの削除を加えたもので検証した。commit `5995aa0` のtreeと一致することも確認済み:
   - `docker build --no-cache`（Node 24、builder/runtime両stage）: 成功。`npm ci` は98 package、`prisma generate`
     （Prisma Client 5.22.0）は成功。npm warn・EBADENGINEはなし
@@ -161,18 +183,17 @@ health、env/secret、DB schema/data、cron/worker、log形式、起動command�
 
 ## 提出前セルフチェック
 
-正本: `C:\work\PRG\Sakura\Dev\vps-server-management\docs\templates\server_change_notice_pre_submission_checklist.md`（checklist_version 2、2026-10-22、本noticeの初回提出前）
+正本: `C:\work\PRG\Sakura\Dev\vps-server-management\docs\templates\server_change_notice_pre_submission_checklist.md`（checklist_version 2、2026-10-22、本noticeの初回提出前。再提出ではレビュー記録の指摘範囲＝baseline・release範囲・worktree・preflightを再確認）
 
-- [x] baselineとrelease commit・build入力差分を確認した。差分はDockerfile 2行とroot `package.json` のoverridesのみで、lockfileは不変（baselineの正本との食い違いは上記「release境界」に記載）
-- [x] 実配布物を確認した: `deploy.ps1 -DryRun` で送信78件、secretや未commitファイルの混入なし。runtime contract（port・env名・起動command・health）は不変
+- [x] baseline（VPS管理側の正本の `242ac1b`、sourceの祖先）からsourceまでの全commit3件とbuild入力差分を確認した。artifact対象の差分はDockerfile 2行とroot `package.json` のoverridesのみで、lockfileは不変（再提出で訂正）
+- [x] 実配布物を確認した: `deploy.ps1 -DryRun` で送信78件、secretや未追跡ファイルの混入なし（tracked worktreeはclean、再提出で確認）。runtime contract（port・env名・起動command・health）は不変
 - [x] data更新なし（migrationの追加なし）。旧imageへの戻しを同じDBで検証済み。image rollbackとdata rollbackを分けて記載した
 - [x] app owner / VPS review / production承認を分離した（下記Approval）
-- [x] source commit `5995aa0` とnotice本体（`3c474d1`）を `origin/main` へpushし（app owner承認、2026-10-22）、実remote（`git ls-remote`）とlocal HEADの一致を確認した。ready_for_reviewへの更新commitも別途pushして一致を確認する
-- VPS管理側のread-only preflight（`tools/review_notice_preflight.ps1`）は**未実行**: このPCにPowerShell 7（`pwsh`）がないため
+- [x] source commit `5995aa0` とnoticeを `origin/main` へpushし（app owner承認、2026-10-22）、実remote（`git ls-remote`）とlocal HEADの一致を確認した。再提出commitもpush後に一致を確認する
+- VPS管理側のread-only preflight（`tools/review_notice_preflight.ps1 -CheckActualRemote`）: 前回の提出時は未実行（このPCにPowerShell 7がない）。再提出では、この再提出commitのpush後に実行し、結果をapp owner経由で報告する
 
 ## 未解決事項
 
-- productionの実baselineの確認（`production_deployments.yaml` が `d11a8a9` のまま。上記）
 - production上での起動とDB接続は未確認
 - 参考（本変更とは無関係の既存事象）:
   - lockfileに `@esbuild/linux-x64` が入っていないため、Linux containerでは `tsx` 系のdev scriptが単体では動かない（Node 20でも同じ。runtimeは `dist` を使うため本番には影響しない）

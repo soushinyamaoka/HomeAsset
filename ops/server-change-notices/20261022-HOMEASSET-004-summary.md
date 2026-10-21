@@ -20,7 +20,7 @@ release_commits: 5995aa0 のみ
 
 impact_level: L2
 
-status: draft
+status: ready_for_review
 
 created_by: Claude（app ownerの依頼による互換性検証と文書化、2026-10-22）
 
@@ -167,7 +167,7 @@ health、env/secret、DB schema/data、cron/worker、log形式、起動command�
 - [x] 実配布物を確認した: `deploy.ps1 -DryRun` で送信78件、secretや未commitファイルの混入なし。runtime contract（port・env名・起動command・health）は不変
 - [x] data更新なし（migrationの追加なし）。旧imageへの戻しを同じDBで検証済み。image rollbackとdata rollbackを分けて記載した
 - [x] app owner / VPS review / production承認を分離した（下記Approval）
-- [ ] source commitとnoticeのpushと、実remoteとの一致: push前（app ownerの承認待ち）。push後に確認して記録する
+- [x] source commit `5995aa0` とnotice本体（`3c474d1`）を `origin/main` へpushし（app owner承認、2026-10-22）、実remote（`git ls-remote`）とlocal HEADの一致を確認した。ready_for_reviewへの更新commitも別途pushして一致を確認する
 - VPS管理側のread-only preflight（`tools/review_notice_preflight.ps1`）は**未実行**: このPCにPowerShell 7（`pwsh`）がないため
 
 ## 未解決事項
@@ -190,7 +190,7 @@ Node.js 20 がEOLのため、VPS管理側の都合がつき次第の反映を希
 
 ## Approval
 
-- app owner: Node 24への互換性検証と変更通知書の作成を依頼（2026-10-22）。push・production反映の承認ではない
+- app owner: Node 24への互換性検証と変更通知書の作成を依頼し、pushをチャットで承認（2026-10-22）。production反映の承認ではない
 - VPS management review: 未実施
 - production approval: なし（`deployment_status: not_started`）
 - related task_id: なし（チャットでの直接依頼）

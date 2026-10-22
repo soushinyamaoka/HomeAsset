@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
+import Fastify, { LogController, type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import authPlugin from './plugins/auth';
@@ -91,7 +91,7 @@ function processErrorFields(error: unknown): Record<string, unknown> {
 export async function buildServer() {
   const app = Fastify({
     loggerInstance: logger,
-    disableRequestLogging: true,
+    logController: new LogController({ disableRequestLogging: true }),
   });
 
   app.addHook('onResponse', async (request, reply) => {

@@ -33,18 +33,26 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.decorate(
     'authenticate',
     async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        await req.jwtVerify();
-      } catch (err) {
+      const rejectUnauthenticated = () => {
         log.warn('auth_failed', {
           has_token: Boolean(req.headers.authorization),
           req_id: req.id,
           target: requestLogTarget(req),
         });
         return reply.code(401).send({ message: '認証が必要です' });
+      };
+
+      try {
+        await req.jwtVerify();
+      } catch (err) {
+        return rejectUnauthenticated();
       }
 
-      const { userId } = req.user as { userId: string };
+      // 署名が正しくても userId が無いトークンは拒否する（undefined だと Prisma が条件を無視し、任意の世帯に一致するため）
+      const { userId } = (req.user ?? {}) as { userId?: unknown };
+      if (typeof userId !== 'string' || userId.length === 0) {
+        return rejectUnauthenticated();
+      }
       const membership = await prisma.householdMember.findFirst({
         where: { userId },
         orderBy: { createdAt: 'asc' },

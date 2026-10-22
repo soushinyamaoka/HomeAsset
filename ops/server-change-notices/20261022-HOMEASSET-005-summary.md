@@ -20,7 +20,7 @@ release_commits: 3c474d1a2752ba20549123f88e522683d03ff667, ffa1e9e89e84fef4a01b3
 
 impact_level: L2
 
-status: draft
+status: ready_for_review
 
 created_by: Claude（app ownerの承認による依存更新・検証・文書化、2026-10-22）
 
@@ -205,7 +205,7 @@ port、bind、domain、TLS、health、env/secret、DB schema/data、cron/worker�
 - [x] data更新なし（migrationの追加なし）。旧imageへの戻しを同じDBで検証済み。image rollbackとdata rollbackを分けて記載した
 - [x] 認証の変更は正規のトークンの扱いを変えないことを、新旧比較で確認した
 - [x] app owner / VPS review / production承認を分離した（下記Approval）
-- [ ] source commitとnoticeのpushと、実remoteとの一致: push前（app ownerの承認待ち）。push後に確認する
+- [x] source commit `06a65b6` とnotice本体（`32005d3`）を `origin/main` へpushし（app owner承認、2026-10-22）、実remote（`git ls-remote`）とlocal HEADの一致を確認した。ready_for_reviewへの更新commitも同様に確認する
 - [ ] VPS管理側のread-only preflight（`-CheckActualRemote`）: push後に実行し、結果をapp owner経由で報告する
 
 ## 未解決事項
@@ -227,7 +227,7 @@ critical・highの脆弱性を含むため、VPS管理側の都合がつき次�
 
 ## Approval
 
-- app owner: 依存の更新と変更通知書の作成をチャットで承認（2026-10-22）。push・production反映の承認ではない
+- app owner: 依存の更新・変更通知書の作成・pushをチャットで承認（2026-10-22）。production反映の承認ではない
 - VPS management review: 未実施
 - production approval: なし（`deployment_status: not_started`）
 - related task_id: なし（チャットでの直接依頼。発端はtask 20261022-003の監査警告）
